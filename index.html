@@ -4,14 +4,17 @@
   <meta charset="UTF-8">
   <title>To-Do List</title>
 
+  <!-- 🔥 IMPORTANTE PARA PWA -->
+  <link rel="manifest" href="manifest.json">
+
   <style>
    body {
-  font-family: Arial;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  display: flex;
-  justify-content: center;
-  margin-top: 50px;
-}
+    font-family: Arial;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    justify-content: center;
+    margin-top: 50px;
+  }
 
     .box {
       background: white;
@@ -78,7 +81,7 @@
 
     if (text === "") return;
 
-    tasks.push(text); // guardar en array
+    tasks.push(text);
     saveTasks();
     renderTasks();
 
@@ -87,7 +90,7 @@
 
   function renderTasks() {
     const list = document.getElementById("taskList");
-    list.innerHTML = ""; // limpiar lista
+    list.innerHTML = "";
 
     tasks.forEach((task, index) => {
       const li = document.createElement("li");
@@ -97,7 +100,7 @@
       btn.textContent = "❌";
 
       btn.onclick = () => {
-        tasks.splice(index, 1); // eliminar del array
+        tasks.splice(index, 1);
         saveTasks();
         renderTasks();
       };
@@ -110,6 +113,13 @@
   function saveTasks() {
     localStorage.setItem("tasks", JSON.stringify(tasks));
   }
+</script>
+
+<!-- 🔥 REGISTRO DEL SERVICE WORKER -->
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
 </script>
 
 </body>
