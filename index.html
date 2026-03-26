@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>To-Do Realtime</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="TODO">
+  <link rel="apple-touch-icon" href="icon.png">
+
+  <style>
+    body {
+      font-family: Arial;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex;
+      justify-content: center;
+      margin-top: 50px;
+    }
+
+    .box {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 300px;
+    }
+
+    .input-area {
+      display: flex;
+      gap: 5px;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px;
+    }
+
+    button {
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    li {
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+      background: #eee;
+      padding: 10px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="box">
+  <h2>To-Do Realtime 🔥</h2>
+
+  <div class="input-area">
+    <input type="text" id="taskInput" placeholder="Escribe una tarea">
+    <button onclick="addTask()">➕</button>
+  </div>
+
+  <ul id="taskList"></ul>
+</div>
+
+<!-- FIREBASE -->
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+// CONFIG (la tuya)
+const firebaseConfig = {
+  apiKey: "AIzaSyCmDh0zSKxMvWlmPKczgKwcniWvY1GwlFU",
+  authDomain: "todo-realtime-26f64.firebaseapp.com",
+  projectId: "todo-realtime-26f64",
+  storageBucket: "todo-realtime-26f64.firebasestorage.app",
+  messagingSenderId: "343368634824",
+  appId: "1:343368634824:web:7c27761218bbe2887b30fd"
+};
+
+// Inicializar
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Referencia a colección
+const tasksRef = collection(db, "tasks");
+
+// ESCUCHAR CAMBIOS EN TIEMPO REAL 🔥
+onSnapshot(tasksRef, (snapshot) => {
+  const list = document.getElementById("taskList");
+  list.innerHTML = "";
+
+  snapshot.forEach((docItem) => {
+    const data = docItem.data();
+
+    const li = document.createElement("li");
+    li.textContent = data.text;
+
+    const btn = document.createElement("button");
+    btn.textContent = "❌";
+
+    btn.onclick = async () => {
+      await deleteDoc(doc(db, "tasks", docItem.id));
+    };
+
+    li.appendChild(btn);
+    list.appendChild(li);
+  });
+});
+
+// AGREGAR TAREA
+window.addTask = async function () {
+  const input = document.getElementById("taskInput");
+  const text = input.value.trim();
+
+  if (text === "") return;
+
+  await addDoc(tasksRef, {
+    text: text
+  });
+
+  input.value = "";
+};
+
+</script>
+
+</body>
+</html>
