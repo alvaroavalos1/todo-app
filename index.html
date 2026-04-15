@@ -137,6 +137,11 @@ let currentUser = null;
 window.login = async () => {
   const provider = new GoogleAuthProvider();
 
+  // 🔥 FORZAR selección de cuenta
+  provider.setCustomParameters({
+    prompt: "select_account"
+  });
+
   try {
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
