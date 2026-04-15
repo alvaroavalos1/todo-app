@@ -85,6 +85,7 @@ li {
 
 <script type="module">
 
+// 🔥 IMPORTS
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 
 import {
@@ -95,7 +96,7 @@ import {
   onAuthStateChanged,
   signOut,
   setPersistence,
-  browserLocalPersistence
+  browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 
 import {
@@ -110,7 +111,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
 
-// CONFIG
+// 🔥 CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyCmDh0zSKxMvWlmPKczgKwcniWvY1GwlFU",
   authDomain: "todo-realtime-26f64.firebaseapp.com",
@@ -121,19 +122,18 @@ const firebaseConfig = {
 };
 
 
-// INIT
+// 🔥 INIT
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// 🔥 FIX: persistencia (arregla lo de incógnito)
-setPersistence(auth, browserLocalPersistence);
+// 🔥 CLAVE: sesión por pestaña
+await setPersistence(auth, browserSessionPersistence);
 
 let currentUser = null;
-let unsubscribe = null; // 🔥 para limpiar listeners
 
 
-// LOGIN
+// 🔐 LOGIN
 window.login = async () => {
   const provider = new GoogleAuthProvider();
 
@@ -152,14 +152,14 @@ window.login = async () => {
 };
 
 
-// LOGOUT
+// 🚪 LOGOUT
 window.logout = async () => {
-  if (unsubscribe) unsubscribe(); // 🔥 limpia listener al salir
   await signOut(auth);
+  location.reload();
 };
 
 
-// AUTH STATE
+// 👀 USUARIO
 onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
@@ -171,17 +171,13 @@ onAuthStateChanged(auth, (user) => {
 
     loadTasks();
   } else {
-    currentUser = null;
-
     document.getElementById("loginScreen").style.display = "block";
     document.getElementById("app").style.display = "none";
-
-    if (unsubscribe) unsubscribe(); // 🔥 limpia si no hay usuario
   }
 });
 
 
-// ADD TASK
+// ➕ AGREGAR TAREA
 window.addTask = async () => {
   const input = document.getElementById("taskInput");
   const text = input.value.trim();
@@ -197,18 +193,14 @@ window.addTask = async () => {
 };
 
 
-// REALTIME
+// 🔄 TIEMPO REAL
 function loadTasks() {
-
-  // 🔥 FIX: elimina listener anterior
-  if (unsubscribe) unsubscribe();
-
   const q = query(
     collection(db, "tasks"),
     where("userId", "==", currentUser.uid)
   );
 
-  unsubscribe = onSnapshot(q, (snapshot) => {
+  onSnapshot(q, (snapshot) => {
     const list = document.getElementById("taskList");
     list.innerHTML = "";
 
@@ -230,7 +222,7 @@ function loadTasks() {
 }
 
 
-// ENTER
+// ⌨️ ENTER
 document.getElementById("taskInput").addEventListener("keypress", (e) => {
   if (e.key === "Enter") addTask();
 });
