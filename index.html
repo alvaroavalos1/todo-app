@@ -85,11 +85,13 @@ li {
 
 <script type="module">
 
+// 🔥 IMPORTS (ARRIBA SIEMPRE)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 
 import {
   getAuth,
   signInWithPopup,
+  signInWithRedirect,
   GoogleAuthProvider,
   onAuthStateChanged,
   signOut
@@ -106,6 +108,8 @@ import {
   doc
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
+
+// 🔥 CONFIG (SOLO UNA VEZ)
 const firebaseConfig = {
   apiKey: "AIzaSyCmDh0zSKxMvWlmPKczgKwcniWvY1GwlFU",
   authDomain: "todo-realtime-26f64.firebaseapp.com",
@@ -115,6 +119,8 @@ const firebaseConfig = {
   appId: "1:343368634824:web:7c27761218bbe2887b30fd"
 };
 
+
+// 🔥 INICIALIZACIÓN (SOLO UNA VEZ)
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -122,18 +128,21 @@ const db = getFirestore(app);
 let currentUser = null;
 
 
-// 🔐 LOGIN
-import { signInWithPopup, signInWithRedirect } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
-
+// 🔐 LOGIN (PC + CEL)
 window.login = async () => {
   const provider = new GoogleAuthProvider();
 
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  try {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  if (isMobile) {
-    await signInWithRedirect(auth, provider);
-  } else {
-    await signInWithPopup(auth, provider);
+    if (isMobile) {
+      await signInWithRedirect(auth, provider);
+    } else {
+      await signInWithPopup(auth, provider);
+    }
+
+  } catch (error) {
+    console.error("Error en login:", error);
   }
 };
 
@@ -178,7 +187,7 @@ window.addTask = async () => {
 };
 
 
-// 🔄 TIEMPO REAL (CLAVE 🔥)
+// 🔄 TIEMPO REAL
 function loadTasks() {
   const q = query(
     collection(db, "tasks"),
