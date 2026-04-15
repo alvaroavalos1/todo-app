@@ -123,9 +123,11 @@ let currentUser = null;
 
 
 // 🔐 LOGIN
+import { signInWithRedirect } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+
 window.login = async () => {
   const provider = new GoogleAuthProvider();
-  await signInWithPopup(auth, provider);
+  await signInWithRedirect(auth, provider);
 };
 
 
