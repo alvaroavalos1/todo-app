@@ -64,7 +64,7 @@ li {
 
 <div class="box">
 
-<h2>To-Do PRO 🔥🔥🔥</h2>
+<h2>To-Do PRO 🔥</h2>
 
 <div id="loginScreen">
   <button class="login-btn" onclick="login()">🔐 Iniciar con Google</button>
@@ -127,17 +127,16 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// 🔥 CLAVE: sesión por pestaña
+// 🔥 sesión SOLO por pestaña
 await setPersistence(auth, browserSessionPersistence);
 
 let currentUser = null;
 
 
-// 🔐 LOGIN
+// 🔐 LOGIN (PC + CEL + selector cuenta)
 window.login = async () => {
   const provider = new GoogleAuthProvider();
 
-  // 🔥 FORZAR selección de cuenta
   provider.setCustomParameters({
     prompt: "select_account"
   });
@@ -182,7 +181,7 @@ onAuthStateChanged(auth, (user) => {
 });
 
 
-// ➕ AGREGAR TAREA
+// ➕ AGREGAR
 window.addTask = async () => {
   const input = document.getElementById("taskInput");
   const text = input.value.trim();
