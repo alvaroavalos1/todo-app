@@ -1,129 +1,208 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>To-Do PRO</title>
 
-  <title>To-Do List</title>
+<style>
+body {
+  font-family: Arial;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex;
+  justify-content: center;
+  margin-top: 50px;
+}
 
-  <link rel="manifest" href="manifest.json">
- 
-   
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="TODO">
-  <link rel="apple-touch-icon" href="icon.png">
+.box {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 320px;
+  text-align: center;
+}
 
-  <style>
-    body {
-      font-family: Arial;
-      background: linear-gradient(135deg, #ffffff, #1586d1);
-      display: flex;
-      justify-content: center;
-      margin-top: 50px;
-    }
+input {
+  width: 70%;
+  padding: 10px;
+}
 
-    .box {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      width: 300px;
-    }
+button {
+  padding: 10px;
+  margin-top: 5px;
+  cursor: pointer;
+}
 
-    .input-area {
-      display: flex;
-      gap: 5px;
-    }
+.login-btn {
+  width: 100%;
+  background: #4285F4;
+  color: white;
+  border: none;
+  border-radius: 6px;
+}
 
-    input {
-      flex: 1;
-      padding: 10px;
-    }
+.logout {
+  background: red;
+  color: white;
+  width: 100%;
+  margin-top: 10px;
+}
 
-    button {
-      padding: 10px;
-      cursor: pointer;
-    }
-
-    li {
-      list-style: none;
-      display: flex;
-      justify-content: space-between;
-      margin: 10px 0;
-      background: #eee;
-      padding: 10px;
-      border-radius: 5px;
-    }
-  </style>
+li {
+  list-style: none;
+  margin: 10px 0;
+  display: flex;
+  justify-content: space-between;
+  background: #eee;
+  padding: 10px;
+  border-radius: 5px;
+}
+</style>
 </head>
 
 <body>
 
 <div class="box">
-  <h2>To-Do List</h2>
 
-  <div class="input-area">
-    <input type="text" id="taskInput" placeholder="Escribe una tarea">
-    <button onclick="addTask()">➕</button>
-  </div>
+<h2>To-Do PRO 🔥</h2>
 
-  <ul id="taskList"></ul>
+<div id="loginScreen">
+  <button class="login-btn" onclick="login()">🔐 Iniciar con Google</button>
 </div>
 
-<script>
-  let tasks = [];
+<div id="app" style="display:none;">
+  <p id="userInfo"></p>
 
-  window.onload = function() {
-    const saved = localStorage.getItem("tasks");
-    if (saved) {
-      tasks = JSON.parse(saved);
-      renderTasks();
-    }
-  };
+  <input type="text" id="taskInput" placeholder="Nueva tarea">
+  <button onclick="addTask()">➕</button>
 
-  function addTask() {
-    const input = document.getElementById("taskInput");
-    const text = input.value.trim();
+  <ul id="taskList"></ul>
 
-    if (text === "") return;
+  <button class="logout" onclick="logout()">Cerrar sesión</button>
+</div>
 
-    tasks.push(text);
-    saveTasks();
-    renderTasks();
-    input.value = "";
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+
+import {
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  onSnapshot,
+  query,
+  where,
+  deleteDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCmDh0zSKxMvWlmPKczgKwcniWvY1GwlFU",
+  authDomain: "todo-realtime-26f64.firebaseapp.com",
+  projectId: "todo-realtime-26f64",
+  storageBucket: "todo-realtime-26f64.firebasestorage.app",
+  messagingSenderId: "343368634824",
+  appId: "1:343368634824:web:7c27761218bbe2887b30fd"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+
+
+// 🔐 LOGIN
+window.login = async () => {
+  const provider = new GoogleAuthProvider();
+  await signInWithPopup(auth, provider);
+};
+
+
+// 🚪 LOGOUT
+window.logout = async () => {
+  await signOut(auth);
+};
+
+
+// 👀 DETECTAR USUARIO
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUser = user;
+
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("app").style.display = "block";
+
+    document.getElementById("userInfo").textContent = "👤 " + user.displayName;
+
+    loadTasks();
+  } else {
+    document.getElementById("loginScreen").style.display = "block";
+    document.getElementById("app").style.display = "none";
   }
+});
 
-  function renderTasks() {
+
+// ➕ AGREGAR TAREA
+window.addTask = async () => {
+  const input = document.getElementById("taskInput");
+  const text = input.value.trim();
+
+  if (!text || !currentUser) return;
+
+  await addDoc(collection(db, "tasks"), {
+    text,
+    userId: currentUser.uid
+  });
+
+  input.value = "";
+};
+
+
+// 🔄 TIEMPO REAL (CLAVE 🔥)
+function loadTasks() {
+  const q = query(
+    collection(db, "tasks"),
+    where("userId", "==", currentUser.uid)
+  );
+
+  onSnapshot(q, (snapshot) => {
     const list = document.getElementById("taskList");
     list.innerHTML = "";
 
-    tasks.forEach((task, index) => {
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      const id = docSnap.id;
+
       const li = document.createElement("li");
-      li.textContent = task;
+      li.textContent = data.text;
 
-      const btn = document.createElement("button");
-      btn.textContent = "❌";
+      const del = document.createElement("button");
+      del.textContent = "❌";
+      del.onclick = () => deleteDoc(doc(db, "tasks", id));
 
-      btn.onclick = () => {
-        tasks.splice(index, 1);
-        saveTasks();
-        renderTasks();
-      };
-
-      li.appendChild(btn);
+      li.appendChild(del);
       list.appendChild(li);
     });
-  }
-
-  function saveTasks() {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  }
-</script>
-
-<script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js");
+  });
 }
+
+
+// ⌨️ ENTER
+document.getElementById("taskInput").addEventListener("keypress", (e) => {
+  if (e.key === "Enter") addTask();
+});
+
 </script>
 
 </body>
