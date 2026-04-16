@@ -142,16 +142,9 @@ window.login = async () => {
   });
 
   try {
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-    if (isMobile) {
-      await signInWithRedirect(auth, provider);
-    } else {
-      await signInWithPopup(auth, provider);
-    }
-
+    await signInWithPopup(auth, provider);
   } catch (error) {
-    console.error("Error en login:", error);
+    console.error(error);
   }
 };
 
