@@ -91,12 +91,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/fireba
 import {
   getAuth,
   signInWithPopup,
-  signInWithRedirect,
   GoogleAuthProvider,
   onAuthStateChanged,
-  signOut,
-  setPersistence,
-  browserSessionPersistence
+  signOut
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 
 import {
@@ -127,13 +124,11 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// 🔥 sesión SOLO por pestaña
-await setPersistence(auth, browserSessionPersistence);
-
 let currentUser = null;
+let unsubscribe = null;
 
 
-// 🔐 LOGIN (PC + CEL + selector cuenta)
+// 🔐 LOGIN
 window.login = async () => {
   const provider = new GoogleAuthProvider();
 
@@ -144,7 +139,7 @@ window.login = async () => {
   try {
     await signInWithPopup(auth, provider);
   } catch (error) {
-    console.error(error);
+    console.error("Error login:", error);
   }
 };
 
@@ -158,6 +153,13 @@ window.logout = async () => {
 
 // 👀 USUARIO
 onAuthStateChanged(auth, (user) => {
+
+  // 🔥 limpiar listener anterior
+  if (unsubscribe) {
+    unsubscribe();
+    unsubscribe = null;
+  }
+
   if (user) {
     currentUser = user;
 
@@ -167,44 +169,46 @@ onAuthStateChanged(auth, (user) => {
     document.getElementById("userInfo").textContent = "👤 " + user.displayName;
 
     loadTasks();
+
   } else {
+    currentUser = null;
+
     document.getElementById("loginScreen").style.display = "block";
     document.getElementById("app").style.display = "none";
   }
 });
 
 
-// ➕ AGREGAR
+// ➕ AGREGAR TAREA
 window.addTask = async () => {
   const input = document.getElementById("taskInput");
   const text = input.value.trim();
 
-  if (!text || !currentUser) return;
+  if (!text) return;
 
-  await addDoc(collection(db, "tasks"), {
-    text,
-    userId: currentUser.uid
-  });
+  if (!auth.currentUser) {
+    alert("Debes iniciar sesión");
+    return;
+  }
 
-  input.value = "";
+  try {
+    await addDoc(collection(db, "tasks"), {
+      text: text,
+      userId: auth.currentUser.uid
+    });
+
+    input.value = "";
+
+  } catch (error) {
+    console.error("Error al guardar:", error);
+  }
 };
 
 
 // 🔄 TIEMPO REAL
-if (unsubscribe) {
-  unsubscribe();
-  unsubscribe = null;
-}
 function loadTasks() {
 
-  // 🔥 si no hay usuario, no hacer nada
   if (!currentUser) return;
-
-  // 🔥 evitar múltiples listeners
-  if (unsubscribe) {
-    unsubscribe();
-    unsubscribe = null;
-  }
 
   const q = query(
     collection(db, "tasks"),
@@ -212,15 +216,9 @@ function loadTasks() {
   );
 
   unsubscribe = onSnapshot(q, (snapshot) => {
+
     const list = document.getElementById("taskList");
-
-    // 🔥 limpiar lista antes de renderizar
     list.innerHTML = "";
-
-    if (snapshot.empty) {
-      list.innerHTML = "<p>Sin tareas</p>";
-      return;
-    }
 
     snapshot.forEach((docSnap) => {
       const data = docSnap.data();
@@ -238,10 +236,12 @@ function loadTasks() {
       li.appendChild(del);
       list.appendChild(li);
     });
+
   }, (error) => {
-    console.error("Error en tiempo real:", error);
+    console.error("Error tiempo real:", error);
   });
 }
+
 
 // ⌨️ ENTER
 document.getElementById("taskInput").addEventListener("keypress", (e) => {
