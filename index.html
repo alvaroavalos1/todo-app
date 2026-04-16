@@ -152,9 +152,11 @@ window.logout = async () => {
 
 
 // 👀 USUARIO
+let authInitialized = false;
+
 onAuthStateChanged(auth, (user) => {
 
-  // 🔥 limpiar listener anterior
+  // limpiar listener anterior
   if (unsubscribe) {
     unsubscribe();
     unsubscribe = null;
@@ -170,7 +172,14 @@ onAuthStateChanged(auth, (user) => {
 
     loadTasks();
 
+    // 🔥 marcar que ya inició correctamente
+    authInitialized = true;
+
   } else {
+
+    // 🔥 evitar falso logout
+    if (!authInitialized) return;
+
     currentUser = null;
 
     document.getElementById("loginScreen").style.display = "block";
