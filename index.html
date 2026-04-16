@@ -192,12 +192,18 @@ window.addTask = async () => {
 
 // 🔄 TIEMPO REAL
 function loadTasks() {
+
+  // 🔥 evitar múltiples listeners
+  if (unsubscribe) {
+    unsubscribe();
+  }
+
   const q = query(
     collection(db, "tasks"),
     where("userId", "==", currentUser.uid)
   );
 
-  onSnapshot(q, (snapshot) => {
+  unsubscribe = onSnapshot(q, (snapshot) => {
     const list = document.getElementById("taskList");
     list.innerHTML = "";
 
