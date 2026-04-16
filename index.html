@@ -142,16 +142,9 @@ window.login = async () => {
   });
 
   try {
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-    if (isMobile) {
-      await signInWithRedirect(auth, provider);
-    } else {
-      await signInWithPopup(auth, provider);
-    }
-
+    await signInWithPopup(auth, provider);
   } catch (error) {
-    console.error("Error en login:", error);
+    console.error(error);
   }
 };
 
@@ -198,15 +191,36 @@ window.addTask = async () => {
 
 
 // 🔄 TIEMPO REAL
+if (unsubscribe) {
+  unsubscribe();
+  unsubscribe = null;
+}
 function loadTasks() {
+
+  // 🔥 si no hay usuario, no hacer nada
+  if (!currentUser) return;
+
+  // 🔥 evitar múltiples listeners
+  if (unsubscribe) {
+    unsubscribe();
+    unsubscribe = null;
+  }
+
   const q = query(
     collection(db, "tasks"),
     where("userId", "==", currentUser.uid)
   );
 
-  onSnapshot(q, (snapshot) => {
+  unsubscribe = onSnapshot(q, (snapshot) => {
     const list = document.getElementById("taskList");
+
+    // 🔥 limpiar lista antes de renderizar
     list.innerHTML = "";
+
+    if (snapshot.empty) {
+      list.innerHTML = "<p>Sin tareas</p>";
+      return;
+    }
 
     snapshot.forEach((docSnap) => {
       const data = docSnap.data();
@@ -217,14 +231,17 @@ function loadTasks() {
 
       const del = document.createElement("button");
       del.textContent = "❌";
-      del.onclick = () => deleteDoc(doc(db, "tasks", id));
+      del.onclick = async () => {
+        await deleteDoc(doc(db, "tasks", id));
+      };
 
       li.appendChild(del);
       list.appendChild(li);
     });
+  }, (error) => {
+    console.error("Error en tiempo real:", error);
   });
 }
-
 
 // ⌨️ ENTER
 document.getElementById("taskInput").addEventListener("keypress", (e) => {
