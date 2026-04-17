@@ -1,7 +1,8 @@
 {
-  "name": "To-Do List",
+  "name": "To-Do PRO",
   "short_name": "TODO",
-  "start_url": ".",
+  "start_url": "/todo-app/",
+  "scope": "/todo-app/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#764ba2",
