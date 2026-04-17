@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>To-Do PRO</title>
+
+<link rel="manifest" href="/todo-app/manifest.json">
+
+<style>
+body {
+  font-family: Arial;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex;
+  justify-content: center;
+  margin-top: 50px;
+}
+
+.box {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 320px;
+  text-align: center;
+}
+
+input {
+  width: 70%;
+  padding: 10px;
+}
+
+button {
+  padding: 10px;
+  margin-top: 5px;
+  cursor: pointer;
+}
+
+.login-btn {
+  width: 100%;
+  background: #4285F4;
+  color: white;
+  border: none;
+  border-radius: 6px;
+}
+
+.logout {
+  background: red;
+  color: white;
+  width: 100%;
+  margin-top: 10px;
+}
+
+li {
+  list-style: none;
+  margin: 10px 0;
+  display: flex;
+  justify-content: space-between;
+  background: #eee;
+  padding: 10px;
+  border-radius: 5px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<h2>To-Do PRO 🔥</h2>
+
+<div id="loginScreen">
+  <button class="login-btn" onclick="login()">🔐 Iniciar con Google</button>
+</div>
+
+<div id="app" style="display:none;">
+  <p id="userInfo"></p>
+
+  <input type="text" id="taskInput" placeholder="Nueva tarea">
+  <button onclick="addTask()">➕</button>
+
+  <ul id="taskList"></ul>
+
+  <button class="logout" onclick="logout()">Cerrar sesión</button>
+</div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+
+import {
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signOut,
+  setPersistence,
+  browserSessionPersistence
+} from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  onSnapshot,
+  query,
+  where,
+  deleteDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCmDh0zSKxMvWlmPKczgKwcniWvY1GwlFU",
+  authDomain: "todo-realtime-26f64.firebaseapp.com",
+  projectId: "todo-realtime-26f64",
+  storageBucket: "todo-realtime-26f64.firebasestorage.app",
+  messagingSenderId: "343368634824",
+  appId: "1:343368634824:web:7c27761218bbe2887b30fd"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+await setPersistence(auth, browserSessionPersistence);
+
+let currentUser = null;
+let unsubscribe = null;
+
+window.login = async () => {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+window.logout = async () => {
+  await signOut(auth);
+  location.reload();
+};
+
+onAuthStateChanged(auth, (user) => {
+
+  if (unsubscribe) {
+    unsubscribe();
+    unsubscribe = null;
+  }
+
+  if (user) {
+    currentUser = user;
+
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("app").style.display = "block";
+
+    document.getElementById("userInfo").textContent = "👤 " + user.displayName;
+
+    loadTasks();
+
+  } else {
+    currentUser = null;
+
+    document.getElementById("loginScreen").style.display = "block";
+    document.getElementById("app").style.display = "none";
+  }
+});
+
+window.addTask = async () => {
+  const input = document.getElementById("taskInput");
+  const text = input.value.trim();
+
+  if (!text || !auth.currentUser) return;
+
+  await addDoc(collection(db, "tasks"), {
+    text,
+    userId: auth.currentUser.uid
+  });
+
+  input.value = "";
+};
+
+function loadTasks() {
+  if (!currentUser) return;
+
+  const q = query(
+    collection(db, "tasks"),
+    where("userId", "==", currentUser.uid)
+  );
+
+  unsubscribe = onSnapshot(q, (snapshot) => {
+    const list = document.getElementById("taskList");
+    list.innerHTML = "";
+
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      const id = docSnap.id;
+
+      const li = document.createElement("li");
+      li.textContent = data.text;
+
+      const del = document.createElement("button");
+      del.textContent = "❌";
+      del.onclick = () => deleteDoc(doc(db, "tasks", id));
+
+      li.appendChild(del);
+      list.appendChild(li);
+    });
+  });
+}
+
+document.getElementById("taskInput").addEventListener("keypress", (e) => {
+  if (e.key === "Enter") addTask();
+});
+
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/todo-app/sw.js");
+}
+</script>
+
+</body>
+</html>
