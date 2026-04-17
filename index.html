@@ -85,7 +85,7 @@ li {
 
 <script type="module">
 
-// 🔥 IMPORTS
+// IMPORTS
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 
 import {
@@ -108,7 +108,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
 
-// 🔥 CONFIG
+// CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyCmDh0zSKxMvWlmPKczgKwcniWvY1GwlFU",
   authDomain: "todo-realtime-26f64.firebaseapp.com",
@@ -119,7 +119,7 @@ const firebaseConfig = {
 };
 
 
-// 🔥 INIT
+// INIT
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -128,7 +128,7 @@ let currentUser = null;
 let unsubscribe = null;
 
 
-// 🔐 LOGIN
+// LOGIN
 window.login = async () => {
   const provider = new GoogleAuthProvider();
 
@@ -144,14 +144,14 @@ window.login = async () => {
 };
 
 
-// 🚪 LOGOUT
+// LOGOUT
 window.logout = async () => {
   await signOut(auth);
   location.reload();
 };
 
 
-// 👀 USUARIO
+// USUARIO
 let authInitialized = false;
 
 onAuthStateChanged(auth, (user) => {
@@ -172,12 +172,12 @@ onAuthStateChanged(auth, (user) => {
 
     loadTasks();
 
-    // 🔥 marcar que ya inició correctamente
+    // marcar que ya inició correctamente
     authInitialized = true;
 
   } else {
 
-    // 🔥 evitar falso logout
+    // evitar falso logout
     if (!authInitialized) return;
 
     currentUser = null;
@@ -188,7 +188,7 @@ onAuthStateChanged(auth, (user) => {
 });
 
 
-// ➕ AGREGAR TAREA
+// AGREGAR TAREA
 window.addTask = async () => {
   const input = document.getElementById("taskInput");
   const text = input.value.trim();
@@ -214,7 +214,7 @@ window.addTask = async () => {
 };
 
 
-// 🔄 TIEMPO REAL
+// TIEMPO REAL
 function loadTasks() {
 
   if (!currentUser) return;
@@ -252,7 +252,7 @@ function loadTasks() {
 }
 
 
-// ⌨️ ENTER
+// ENTER
 document.getElementById("taskInput").addEventListener("keypress", (e) => {
   if (e.key === "Enter") addTask();
 });
