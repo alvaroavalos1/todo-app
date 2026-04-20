@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do PRO</title>
+    <link rel="manifest" href="manifest.json">
+
+    <!-- ==========================================
+         ZONA DE DISEÑO (CSS) 
+         ========================================== -->
+    <style>
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            display: flex; 
+            justify-content: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding-top: 50px; 
+        }
+
+        .card { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 20px; 
+            width: 350px; 
+            text-align: center; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
+            height: fit-content;
+        }
+
+        h2 { color: #333; margin-top: 0; font-size: 24px; }
+        #userInfo { color: #666; font-size: 14px; margin-bottom: 20px; font-weight: bold; }
+
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        
+        input { 
+            flex-grow: 1; 
+            padding: 12px; 
+            border: 2px solid #eee; 
+            border-radius: 10px; 
+            outline: none; 
+        }
+
+        button { 
+            padding: 12px; 
+            cursor: pointer; 
+            border: none; 
+            border-radius: 10px; 
+            font-weight: bold; 
+            transition: 0.3s; 
+        }
+
+        .btn-add { background: #2ed573; color: white; width: 50px; }
+        .btn-add:hover { background: #26af5f; }
+
+        .btn-login { 
+            width: 100%; 
+            background: #4285F4; 
+            color: white; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 10px; 
+        }
+
+        .btn-logout { 
+            background: #ff4757; 
+            color: white; 
+            width: 100%; 
+            margin-top: 20px; 
+        }
+
+        ul { padding: 0; margin: 0; }
+        
+        li { 
+            list-style: none; 
+            margin-bottom: 12px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            background: #fdfdfd; 
+            padding: 15px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-left: 5px solid #667eea;
+        }
+
+        .btn-delete { background: none; color: #ff4757; font-size: 18px; padding: 0; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>To-Do PRO 🔥</h2>
+
+        <!-- Pantalla: Login -->
+        <div id="loginScreen">
+            <p>Inicia sesión para gestionar tus tareas.</p>
+            <button class="btn-login" onclick="login()">
+                <img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" width="20" alt="google">
+                Iniciar con Google
+            </button>
+        </div>
+
+        <!-- Pantalla: App -->
+        <div id="app" style="display:none;">
+            <p id="userInfo"></p>
+            
+            <div class="input-group">
+                <input type="text" id="taskInput" placeholder="Añadir una tarea...">
+                <button class="btn-add" onclick="addTask()">➕</button>
+            </div>
+
+            <ul id="taskList"></ul>
+
+            <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         LÓGICA DE FIREBASE 
+         ========================================== -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInWithPopup, 
+            GoogleAuthProvider, 
+            onAuthStateChanged, 
+            signOut, 
+            setPersistence, 
+            browserSessionPersistence  // <--- CAMBIO: Sesión se borra al cerrar pestaña
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            onSnapshot, 
+            query, 
+            where, 
+            deleteDoc, 
+            doc, 
+            enableIndexedDbPersistence, 
+            serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCmDh0zSKxMvWlmPKczgKwcniWvY1GwlFU",
+            authDomain: "todo-realtime-26f64.firebaseapp.com",
+            projectId: "todo-realtime-26f64",
+            storageBucket: "todo-realtime-26f64.appspot.com",
+            messagingSenderId: "343368634824",
+            appId: "1:343368634824:web:7c27761218bbe2887b30fd"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // 1. CONFIGURAR PERSISTENCIA DE SESIÓN
+        // Esto evita que el mismo usuario entre automáticamente en otros navegadores o tras cerrar la pestaña.
+        setPersistence(auth, browserSessionPersistence);
+
+        // 2. ACTIVAR MODO OFFLINE (Firestore)
+        enableIndexedDbPersistence(db).catch(() => console.warn("Modo offline activo"));
+
+        let unsubscribe = null;
+
+        // 3. FUNCIÓN LOGIN CORREGIDA
+        window.login = async () => {
+            const provider = new GoogleAuthProvider();
+            
+            // 🔥 Fuerza a Google a preguntar qué cuenta quieres usar siempre
+            provider.setCustomParameters({
+                prompt: 'select_account'
+            });
+
+            try { 
+                await signInWithPopup(auth, provider); 
+            } catch (e) { 
+                console.error("Error en login:", e); 
+            }
+        };
+
+        window.logout = async () => {
+            await signOut(auth);
+            // Recargamos para limpiar cualquier rastro de datos en memoria
+            window.location.reload();
+        };
+
+        // Escuchar cambios de usuario
+        onAuthStateChanged(auth, (user) => {
+            if (unsubscribe) unsubscribe();
+            if (user) {
+                document.getElementById("loginScreen").style.display = "none";
+                document.getElementById("app").style.display = "block";
+                document.getElementById("userInfo").textContent = "👤 " + user.displayName;
+                loadTasks(user.uid);
+            } else {
+                document.getElementById("loginScreen").style.display = "block";
+                document.getElementById("app").style.display = "none";
+            }
+        });
+
+        // Tareas
+        window.addTask = async () => {
+            const input = document.getElementById("taskInput");
+            if (!input.value.trim()) return;
+            await addDoc(collection(db, "tasks"), {
+                text: input.value,
+                userId: auth.currentUser.uid,
+                createdAt: serverTimestamp()
+            });
+            input.value = "";
+        };
+
+        window.deleteTask = async (id) => {
+            await deleteDoc(doc(db, "tasks", id));
+        };
+
+        function loadTasks(uid) {
+            const q = query(collection(db, "tasks"), where("userId", "==", uid));
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                const list = document.getElementById("taskList");
+                list.innerHTML = "";
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const li = document.createElement("li");
+                    li.innerHTML = `
+                        <span>${data.text}</span>
+                        <button class="btn-delete" onclick="deleteTask('${docSnap.id}')">❌</button>
+                    `;
+                    list.appendChild(li);
+                });
+            });
+        }
+
+        document.getElementById("taskInput").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") addTask();
+        });
+    </script>
+
+    <script>
+        // Service Worker
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("sw.js");
+        }
+    </script>
+</body>
+</html>
