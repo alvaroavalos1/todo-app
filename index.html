@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>To-Do PRO</title>
 
-<!-- 🔥 PWA -->
 <link rel="manifest" href="/todo-app/manifest.json">
 
 <style>
@@ -69,12 +68,10 @@ li {
 
 <h2>To-Do PRO 🔥</h2>
 
-<!-- 🔐 LOGIN -->
 <div id="loginScreen">
   <button class="login-btn" onclick="login()">🔐 Iniciar con Google</button>
 </div>
 
-<!-- 📱 APP -->
 <div id="app" style="display:none;">
   <p id="userInfo"></p>
 
@@ -150,11 +147,7 @@ window.login = async () => {
     prompt: "select_account"
   });
 
-  try {
-    await signInWithRedirect(auth, provider);
-  } catch (error) {
-    console.error("Error login:", error);
-  }
+  await signInWithRedirect(auth, provider);
 };
 
 
@@ -165,9 +158,10 @@ window.logout = async () => {
 };
 
 
-// ================= USUARIO =================
+// ================= CONTROL DE SESIÓN =================
 onAuthStateChanged(auth, (user) => {
 
+  // 🔥 limpiar listener anterior
   if (unsubscribe) {
     unsubscribe();
     unsubscribe = null;
@@ -192,7 +186,7 @@ onAuthStateChanged(auth, (user) => {
 });
 
 
-// ================= AGREGAR =================
+// ================= AGREGAR TAREA =================
 window.addTask = async () => {
   const input = document.getElementById("taskInput");
   const text = input.value.trim();
